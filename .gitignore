@@ -1,0 +1,14 @@
+node_modules/
+dist/
+out/
+webview-dist/
+.env
+.auth-state.json
+/tmp/
+*.png
+!resources/*.png
+*.vsix
+.DS_Store
+CLAUDE.md
+DEVELOPMENT.md
+SESSION_HISTORY.md

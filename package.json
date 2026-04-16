@@ -1,0 +1,262 @@
+{
+  "name": "specpilot",
+  "displayName": "SpecPilot",
+  "description": "Jira workflow tools — vibe code epics, AI-powered stories, release notes, automation rules, and more.",
+  "version": "1.0.0",
+  "type": "module",
+  "publisher": "chriswoolf",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Cwoolf91/specpilot"
+  },
+  "icon": "resources/icon.png",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other",
+    "Testing"
+  ],
+  "keywords": [
+    "jira",
+    "specpilot",
+    "vibe-code",
+    "release-notes",
+    "epic",
+    "story",
+    "agile"
+  ],
+  "main": "./out/extension.cjs",
+  "files": [
+    "out/extension.cjs",
+    "webview-dist/**",
+    "resources/**",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "activationEvents": [
+    "onView:specPilot.vibeEpics",
+    "onView:specPilot.activeSprint",
+    "onView:specPilot.automationRules",
+    "onView:specPilot.settings"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "specpilot",
+          "title": "SpecPilot",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "specpilot": [
+        {
+          "id": "specPilot.vibeEpics",
+          "name": "Vibe Code Epics"
+        },
+        {
+          "id": "specPilot.activeSprint",
+          "name": "Active Sprint"
+        },
+        {
+          "id": "specPilot.automationRules",
+          "name": "Automation Rules"
+        },
+        {
+          "id": "specPilot.settings",
+          "name": "Settings"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "specPilot.createIssueFromCode",
+        "key": "ctrl+shift+j",
+        "mac": "cmd+shift+j",
+        "when": "editorHasSelection"
+      }
+    ],
+    "commands": [
+      {
+        "command": "specPilot.openDashboard",
+        "title": "SpecPilot: Open Dashboard"
+      },
+      {
+        "command": "specPilot.setCredentials",
+        "title": "SpecPilot: Set Credentials"
+      },
+      {
+        "command": "specPilot.startMcp",
+        "title": "SpecPilot: Start MCP Server"
+      },
+      {
+        "command": "specPilot.stopMcp",
+        "title": "SpecPilot: Stop MCP Server"
+      },
+      {
+        "command": "specPilot.createIssueFromCode",
+        "title": "SpecPilot: Create Issue from Selection"
+      },
+      {
+        "command": "specPilot.checkForUpdates",
+        "title": "SpecPilot: Check for Updates"
+      },
+      {
+        "command": "specPilot.refreshVibeEpics",
+        "title": "Refresh",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "specPilot.refreshSprint",
+        "title": "Refresh",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "specPilot.refreshRules",
+        "title": "Refresh",
+        "icon": "$(refresh)"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "specPilot.createIssueFromCode",
+          "when": "editorHasSelection",
+          "group": "specPilot"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "specPilot.refreshVibeEpics",
+          "when": "view == specPilot.vibeEpics",
+          "group": "navigation"
+        },
+        {
+          "command": "specPilot.refreshSprint",
+          "when": "view == specPilot.activeSprint",
+          "group": "navigation"
+        },
+        {
+          "command": "specPilot.refreshRules",
+          "when": "view == specPilot.automationRules",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "SpecPilot",
+      "properties": {
+        "specPilot.epicLabel": {
+          "type": "string",
+          "default": "vibe-code",
+          "description": "Label used to filter and tag epics created by this tool."
+        },
+        "specPilot.acceptanceCriteriaFieldId": {
+          "type": "string",
+          "default": "",
+          "description": "Custom field ID for Acceptance Criteria (e.g., customfield_10334). Leave empty if not used."
+        },
+        "specPilot.releaseNotes.excludeIssueTypes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["Technical Debt", "Security & Compliance", "Bug", "Spike", "Test", "Toil", "Task"],
+          "description": "Issue types to exclude from release notes."
+        },
+        "specPilot.selfHostedUpdateRepo": {
+          "type": "string",
+          "default": "",
+          "description": "GitHub owner/repo for self-hosted update checks (e.g., 'myorg/specpilot'). Leave empty to use VS Code Marketplace updates."
+        },
+        "specPilot.autoUpdate": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically check for updates from a self-hosted GitHub repo (requires selfHostedUpdateRepo to be set)."
+        },
+        "specPilot.updateCheckIntervalMinutes": {
+          "type": "number",
+          "default": 60,
+          "minimum": 5,
+          "description": "How often to check for self-hosted updates (in minutes). Only applies when selfHostedUpdateRepo is set."
+        },
+        "specPilot.aiEnhanceIssues": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use AI to enhance issue descriptions when creating from code selection."
+        },
+        "specPilot.ai.provider": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "bedrock",
+            "vscode-lm"
+          ],
+          "default": "auto",
+          "description": "AI provider for issue enhancement. 'auto' tries Bedrock first, then VS Code Language Model API (Copilot)."
+        },
+        "specPilot.ai.bedrockRegion": {
+          "type": "string",
+          "default": "",
+          "description": "AWS region for Bedrock. Falls back to AWS_REGION env var, then us-east-2."
+        },
+        "specPilot.ai.bedrockProfile": {
+          "type": "string",
+          "default": "",
+          "description": "AWS profile for Bedrock SSO auth. Falls back to AWS_PROFILE env var."
+        },
+        "specPilot.ai.bedrockModelId": {
+          "type": "string",
+          "default": "us.anthropic.claude-opus-4-6-v1",
+          "description": "Bedrock model ID for AI-powered features."
+        },
+        "specPilot.ai.storyTemplatePath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to a custom BDD Story template file (.md). Leave empty to use the built-in template."
+        },
+        "specPilot.ai.epicTemplatePath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to a custom BDD Epic template file (.md). Leave empty to use the built-in template."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "list-rules": "tsx scripts/list-automation-rules.ts",
+    "generate-notes": "tsx scripts/generate-release-notes.ts",
+    "create-epics": "tsx scripts/create-epic-stories.ts",
+    "mcp-server": "tsx scripts/mcp-server.ts",
+    "build:extension": "node esbuild.mjs",
+    "build:extension:prod": "node esbuild.mjs --production",
+    "build:webview": "vite build",
+    "build": "npm run build:extension:prod && npm run build:webview",
+    "watch:extension": "node esbuild.mjs --watch",
+    "watch:webview": "vite build --watch",
+    "package": "npm run build && vsce package"
+  },
+  "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.1023.0",
+    "@aws-sdk/credential-providers": "^3.1023.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "dotenv": "^16.4.7",
+    "playwright": "^1.52.0",
+    "tsx": "^4.19.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/vscode": "^1.85.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "@vscode/vsce": "^3.2.0",
+    "esbuild": "^0.24.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "typescript": "^5.7.0",
+    "vite": "^6.0.0"
+  }
+}
