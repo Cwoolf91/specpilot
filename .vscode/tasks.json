@@ -1,0 +1,24 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "npm",
+      "script": "build:extension",
+      "group": "build",
+      "problemMatcher": ["$esbuild-watch"],
+      "label": "npm: build:extension"
+    },
+    {
+      "type": "npm",
+      "script": "build:webview",
+      "group": "build",
+      "label": "npm: build:webview"
+    },
+    {
+      "type": "npm",
+      "script": "build",
+      "group": "build",
+      "label": "npm: build"
+    }
+  ]
+}
