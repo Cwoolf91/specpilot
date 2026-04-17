@@ -38,7 +38,7 @@ export default function VibeCodeTab() {
   const [vibeBranch, setVibeBranch] = useState("dev");
   const [targetRepo, setTargetRepo] = useState("");
   const [targetBranch, setTargetBranch] = useState("origin/main");
-  const [appDir, setAppDir] = useState("apps/customer-portal");
+  const [appDir, setAppDir] = useState(".");
 
   // Step 2
   const [categories, setCategories] = useState<Record<string, string[]>>({});
