@@ -53,6 +53,12 @@ export default function SettingsTab() {
   const [anthropicKey, setAnthropicKey] = useState("");
   const [savingAnthropic, setSavingAnthropic] = useState(false);
 
+  const [epicLabel, setEpicLabel] = useState<string>("");
+  const [epicLabelDefault, setEpicLabelDefault] = useState<string>("vibe-code");
+  const [epicLabelDraft, setEpicLabelDraft] = useState<string>("");
+  const [editingEpicLabel, setEditingEpicLabel] = useState(false);
+  const [savingEpicLabel, setSavingEpicLabel] = useState(false);
+
   const [toast, setToast] = useState<Toast>(null);
 
   const showToast = (t: Toast) => {
@@ -93,9 +99,30 @@ export default function SettingsTab() {
           setAnthropicKey("");
           showToast({ kind: "success", text: "Anthropic API key saved." });
           break;
+        case "epicLabel": {
+          const value = (msg.value as string) || "vibe-code";
+          const defaultValue = (msg.defaultValue as string) || "vibe-code";
+          setEpicLabel(value);
+          setEpicLabelDefault(defaultValue);
+          setEpicLabelDraft(value);
+          break;
+        }
+        case "epicLabelSaved": {
+          const value = (msg.value as string) || "vibe-code";
+          setEpicLabel(value);
+          setEpicLabelDraft(value);
+          setSavingEpicLabel(false);
+          setEditingEpicLabel(false);
+          showToast({
+            kind: "success",
+            text: `Vibe Code epic label saved as "${value}".`,
+          });
+          break;
+        }
         case "error": {
           if (saving) setSaving(false);
           if (savingAnthropic) setSavingAnthropic(false);
+          if (savingEpicLabel) setSavingEpicLabel(false);
           showToast({
             kind: "error",
             text: (msg.message as string) || "Something went wrong.",
@@ -104,7 +131,7 @@ export default function SettingsTab() {
         }
       }
     },
-    [saving, savingAnthropic]
+    [saving, savingAnthropic, savingEpicLabel]
   );
 
   useVsCodeMessage(handleMessage);
@@ -113,6 +140,7 @@ export default function SettingsTab() {
     sendMessage("getConnectionStatus");
     sendMessage("getAboutInfo");
     sendMessage("getCredentialsForm");
+    sendMessage("getEpicLabel");
   }, []);
 
   const openLink = (url: string) => sendMessage("openExternal", { url });
@@ -148,6 +176,27 @@ export default function SettingsTab() {
     }
     setApiToken("");
     setEditing(false);
+  };
+
+  const handleSaveEpicLabel = () => {
+    const trimmed = epicLabelDraft.trim();
+    if (!trimmed) {
+      showToast({ kind: "error", text: "Epic label cannot be empty." });
+      return;
+    }
+    if (!/^[\w.-]+$/.test(trimmed)) {
+      showToast({
+        kind: "error",
+        text: "Label may only contain letters, numbers, hyphens, underscores, and dots.",
+      });
+      return;
+    }
+    setSavingEpicLabel(true);
+    sendMessage("saveEpicLabel", { value: trimmed });
+  };
+
+  const handleResetEpicLabel = () => {
+    setEpicLabelDraft(epicLabelDefault);
   };
 
   const handleSaveAnthropic = () => {
@@ -319,6 +368,63 @@ export default function SettingsTab() {
             )}
           </div>
         ) : null}
+      </div>
+
+      <div className="settings-section">
+        <h3>Vibe Code Epic Label</h3>
+        <p className="description">
+          Label applied to epics created by SpecPilot, and used to filter the
+          "Vibe Code Epics" sidebar view. Change this if your team already uses a
+          different convention (e.g. <code>product-spike</code> or <code>prototype</code>).
+        </p>
+        {epicLabel ? (
+          <div className="credentials-form">
+            <Input
+              label="Label"
+              value={editingEpicLabel ? epicLabelDraft : epicLabel}
+              onChange={(e) => setEpicLabelDraft(e.target.value)}
+              placeholder={epicLabelDefault}
+              disabled={!editingEpicLabel}
+            />
+            <div className="settings-actions">
+              {editingEpicLabel ? (
+                <>
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setEpicLabelDraft(epicLabel);
+                      setEditingEpicLabel(false);
+                    }}
+                    disabled={savingEpicLabel}
+                  >
+                    Cancel
+                  </Button>
+                  {epicLabelDraft !== epicLabelDefault && (
+                    <Button
+                      variant="secondary"
+                      onClick={handleResetEpicLabel}
+                      disabled={savingEpicLabel}
+                    >
+                      Reset to default
+                    </Button>
+                  )}
+                  <Button
+                    onClick={handleSaveEpicLabel}
+                    disabled={savingEpicLabel || epicLabelDraft.trim() === epicLabel.trim()}
+                  >
+                    {savingEpicLabel ? "Saving..." : "Save Label"}
+                  </Button>
+                </>
+              ) : (
+                <Button onClick={() => setEditingEpicLabel(true)}>
+                  Edit Label
+                </Button>
+              )}
+            </div>
+          </div>
+        ) : (
+          <Spinner text="Loading label..." />
+        )}
       </div>
 
       <div className="settings-section">

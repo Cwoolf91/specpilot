@@ -85,6 +85,15 @@ export function activate(context: vscode.ExtensionContext) {
       updateChecker?.checkForUpdates(false)
     )
   );
+
+  // Refresh the Vibe Epics tree whenever the epic label setting changes.
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration("specPilot.epicLabel")) {
+        vibeTree.refresh();
+      }
+    })
+  );
 }
 
 export function deactivate() {

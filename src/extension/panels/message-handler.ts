@@ -127,6 +127,10 @@ export class MessageHandler {
           return await this.handleSaveCredentialsForm(msg);
         case "saveAnthropicKeyForm":
           return await this.handleSaveAnthropicKeyForm(msg);
+        case "getEpicLabel":
+          return this.handleGetEpicLabel();
+        case "saveEpicLabel":
+          return await this.handleSaveEpicLabel(msg);
         default:
           this.postMessage({ type: "error", message: `Unknown message type: ${msg.type}` });
       }
@@ -798,6 +802,28 @@ export class MessageHandler {
     await this.credProvider.storeAnthropicApiKey(apiKey);
     this.postMessage({ type: "anthropicKeySaved" });
     await this.handleGetCredentialsForm();
+  }
+
+  private handleGetEpicLabel() {
+    const config = vscode.workspace.getConfiguration("specPilot");
+    const value = config.get<string>("epicLabel", "vibe-code");
+    const defaultValue = (config.inspect<string>("epicLabel")?.defaultValue as string | undefined) ?? "vibe-code";
+    this.postMessage({ type: "epicLabel", value, defaultValue });
+  }
+
+  private async handleSaveEpicLabel(msg: Message) {
+    const rawValue = typeof msg.value === "string" ? msg.value : "";
+    const value = rawValue.trim();
+    if (!value) {
+      throw new Error("Epic label cannot be empty.");
+    }
+    if (!/^[\w.-]+$/.test(value)) {
+      throw new Error("Epic label may only contain letters, numbers, hyphens, underscores, and dots.");
+    }
+    await vscode.workspace
+      .getConfiguration("specPilot")
+      .update("epicLabel", value, vscode.ConfigurationTarget.Global);
+    this.postMessage({ type: "epicLabelSaved", value });
   }
 
   private async handleSaveSettings(msg: Message) {
