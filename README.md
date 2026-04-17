@@ -43,15 +43,11 @@ Every engineering team loses hours every sprint to the friction between **"we bu
 
 ![SpecPilot Dashboard](resources/screenshots/dashboard.png)
 
-### Turn a code selection into a Jira ticket
-
-![Create Issue from Selection](resources/screenshots/create-from-selection.gif)
-
-Highlight code → `Cmd+Shift+J` → choose Bug or Story → review the AI-enhanced ticket in a side panel → click **Create Issue**. The ticket lands in Jira with BDD-formatted acceptance criteria linked to the exact code that triggered it.
+The dashboard opens beside your editor with the full sidebar visible. Five tabs: Vibe Code, Release Notes, Augment Epic, Epic Review, and Settings.
 
 ### Sidebar views
 
-![Activity Bar Sidebar](resources/screenshots/sidebar.png)
+<img src="resources/screenshots/sidebar.png" alt="Activity Bar Sidebar" width="280" />
 
 Four tree views under the SpecPilot icon:
 
@@ -62,11 +58,11 @@ Four tree views under the SpecPilot icon:
 | **Automation Rules** | Every project automation rule, sorted enabled-first |
 | **Settings** | Credentials, dashboard, MCP server, version info |
 
-### Generate release notes from a sprint
+### Connection + MCP setup at a glance
 
-![Release Notes Wizard](resources/screenshots/release-notes.gif)
+![Settings Tab](resources/screenshots/dashboard-settings.png)
 
-Pick a version → select which issues to include → AI drafts customer-facing notes grouped by theme → edit → publish to Confluence and the Jira version description.
+The Settings tab shows live connection status, current user/instance/project, and a copy-pasteable MCP server config for Claude Code.
 
 ---
 
@@ -80,9 +76,13 @@ Install [SpecPilot from the VS Code Marketplace](https://marketplace.visualstudi
 
 1. Open the Command Palette (`Cmd+Shift+P`)
 2. Run **SpecPilot: Set Credentials**
-3. Enter your Jira base URL, email, [API token](https://id.atlassian.com/manage-profile/security/api-tokens), and default project key
+3. A four-step prompt walks you through the required values:
 
-The status bar shows your connection state. Click it to open the dashboard. Issue types and projects are auto-discovered — no manual ID wiring.
+<img src="resources/screenshots/setup-base-url.png" alt="Jira Base URL prompt" width="560" />
+<img src="resources/screenshots/setup-api-token.png" alt="Jira API Token prompt" width="560" />
+<img src="resources/screenshots/setup-project-key.png" alt="Default Project Key prompt" width="560" />
+
+Use your Jira base URL, email, [API token](https://id.atlassian.com/manage-profile/security/api-tokens), and default project key. The status bar shows your connection state. Click it to open the dashboard. Issue types and projects are auto-discovered — no manual ID wiring.
 
 ### 3. (Optional) Configure AI
 
