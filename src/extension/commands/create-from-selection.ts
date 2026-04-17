@@ -135,7 +135,8 @@ export function registerCreateFromSelection(
           lineRange,
           language,
         },
-        cts.token
+        cts.token,
+        credProvider,
       ).then((enhanced) => {
         if (cts.token.isCancellationRequested) return;
         if (enhanced) {

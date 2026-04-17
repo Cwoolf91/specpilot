@@ -76,6 +76,16 @@ export class SettingsTreeProvider
       );
     }
 
+    const hasAnthropicKey = await this.credProvider.hasAnthropicApiKey();
+    items.push(
+      new SettingsItem(
+        hasAnthropicKey ? "Anthropic API Key" : "Set Anthropic API Key",
+        "specPilot.setAnthropicApiKey",
+        hasAnthropicKey ? "check" : "key",
+        hasAnthropicKey ? "Configured" : "Required for AI without Bedrock/Copilot"
+      )
+    );
+
     items.push(
       new SettingsItem(
         "Open Dashboard",

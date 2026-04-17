@@ -9,6 +9,15 @@ webview-dist/
 !resources/*.png
 *.vsix
 .DS_Store
+graphify-out/cache/
+graphify-out/.graphify_*
 CLAUDE.md
 DEVELOPMENT.md
 SESSION_HISTORY.md
+graphify-out/
+.claude/
+coverage/
+test-results/
+playwright-report/
+.vscode-test/
+blob-report/

@@ -6,6 +6,7 @@ const SECRET_KEYS = {
   email: "specPilot.email",
   apiToken: "specPilot.apiToken",
   projectKey: "specPilot.projectKey",
+  anthropicApiKey: "specPilot.anthropicApiKey",
 } as const;
 
 export class VscodeCredentialProvider implements CredentialProvider {
@@ -44,6 +45,21 @@ export class VscodeCredentialProvider implements CredentialProvider {
     } catch {
       return false;
     }
+  }
+
+  async getAnthropicApiKey(): Promise<string | null> {
+    const key = await this.secrets.get(SECRET_KEYS.anthropicApiKey);
+    if (key) return key;
+    return process.env.ANTHROPIC_API_KEY || null;
+  }
+
+  async storeAnthropicApiKey(key: string): Promise<void> {
+    await this.secrets.store(SECRET_KEYS.anthropicApiKey, key);
+  }
+
+  async hasAnthropicApiKey(): Promise<boolean> {
+    const key = await this.getAnthropicApiKey();
+    return key !== null && key.length > 0;
   }
 
   private loadEnvFallback(): JiraCredentials | null {

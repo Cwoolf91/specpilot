@@ -28,14 +28,6 @@
     "agile"
   ],
   "main": "./out/extension.cjs",
-  "files": [
-    "out/extension.cjs",
-    "webview-dist/**",
-    "resources/**",
-    "README.md",
-    "CHANGELOG.md",
-    "LICENSE"
-  ],
   "activationEvents": [
     "onView:specPilot.vibeEpics",
     "onView:specPilot.activeSprint",
@@ -106,6 +98,10 @@
         "title": "SpecPilot: Check for Updates"
       },
       {
+        "command": "specPilot.setAnthropicApiKey",
+        "title": "SpecPilot: Set Anthropic API Key"
+      },
+      {
         "command": "specPilot.refreshVibeEpics",
         "title": "Refresh",
         "icon": "$(refresh)"
@@ -162,8 +158,18 @@
         },
         "specPilot.releaseNotes.excludeIssueTypes": {
           "type": "array",
-          "items": { "type": "string" },
-          "default": ["Technical Debt", "Security & Compliance", "Bug", "Spike", "Test", "Toil", "Task"],
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "Technical Debt",
+            "Security & Compliance",
+            "Bug",
+            "Spike",
+            "Test",
+            "Toil",
+            "Task"
+          ],
           "description": "Issue types to exclude from release notes."
         },
         "specPilot.selfHostedUpdateRepo": {
@@ -192,10 +198,11 @@
           "enum": [
             "auto",
             "bedrock",
+            "anthropic",
             "vscode-lm"
           ],
           "default": "auto",
-          "description": "AI provider for issue enhancement. 'auto' tries Bedrock first, then VS Code Language Model API (Copilot)."
+          "description": "AI provider. 'auto' tries Bedrock, then Anthropic API, then VS Code Language Model API (Copilot)."
         },
         "specPilot.ai.bedrockRegion": {
           "type": "string",
@@ -211,6 +218,11 @@
           "type": "string",
           "default": "us.anthropic.claude-opus-4-6-v1",
           "description": "Bedrock model ID for AI-powered features."
+        },
+        "specPilot.ai.anthropicModelId": {
+          "type": "string",
+          "default": "claude-sonnet-4-5-20250929",
+          "description": "Anthropic API model ID for AI-powered features."
         },
         "specPilot.ai.storyTemplatePath": {
           "type": "string",
@@ -236,27 +248,51 @@
     "build": "npm run build:extension:prod && npm run build:webview",
     "watch:extension": "node esbuild.mjs --watch",
     "watch:webview": "vite build --watch",
-    "package": "npm run build && vsce package"
+    "package": "npm run build && vsce package",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:unit": "vitest run --project unit",
+    "test:webview": "vitest run --project webview",
+    "test:coverage": "vitest run --coverage",
+    "test:integration": "npm run build:integration && vscode-test",
+    "test:e2e": "playwright test",
+    "test:all": "npm run test && npm run test:integration && npm run test:e2e",
+    "build:integration": "tsc -p tsconfig.integration.json && node -e \"require('fs').writeFileSync('out/test/package.json', JSON.stringify({type:'commonjs'}))\"",
+    "typecheck:tests": "tsc -p tsconfig.test.json --noEmit"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
     "@aws-sdk/client-bedrock-runtime": "^3.1023.0",
     "@aws-sdk/credential-providers": "^3.1023.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "dotenv": "^16.4.7",
-    "playwright": "^1.52.0",
-    "tsx": "^4.19.0"
+    "playwright": "^1.52.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/mocha": "^10.0.10",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@types/vscode": "^1.85.0",
     "@vitejs/plugin-react": "^4.3.0",
+    "@vitest/coverage-v8": "^2.1.9",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.5.2",
     "@vscode/vsce": "^3.2.0",
+    "dotenv": "^16.4.7",
     "esbuild": "^0.24.0",
+    "glob": "^11.1.0",
+    "jsdom": "^25.0.1",
+    "mocha": "^10.8.2",
+    "msw": "^2.13.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "tsx": "^4.19.0",
     "typescript": "^5.7.0",
-    "vite": "^6.0.0"
+    "vite": "^6.0.0",
+    "vitest": "^2.1.9"
   }
 }

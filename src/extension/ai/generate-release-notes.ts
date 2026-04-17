@@ -1,8 +1,10 @@
 import * as vscode from "vscode";
+import Anthropic from "@anthropic-ai/sdk";
 import { BedrockRuntimeClient, ConverseCommand } from "@aws-sdk/client-bedrock-runtime";
 import { fromIni } from "@aws-sdk/credential-providers";
 import { parseJsonResponse } from "../../core/utils.js";
 import type { ReleaseNotesResult } from "../../core/types.js";
+import type { VscodeCredentialProvider } from "../credentials.js";
 
 export interface ReleaseNotesIssue {
   key: string;
@@ -156,6 +158,50 @@ async function generateWithBedrock(
   }
 }
 
+async function generateWithAnthropic(
+  ctx: GenerateReleaseNotesContext,
+  token: vscode.CancellationToken,
+  credProvider: VscodeCredentialProvider,
+): Promise<ReleaseNotesResult | null> {
+  const apiKey = await credProvider.getAnthropicApiKey();
+  if (!apiKey) {
+    outputChannel.appendLine("Anthropic: no API key configured");
+    return null;
+  }
+
+  const config = vscode.workspace.getConfiguration("specPilot");
+  const modelId = config.get<string>("ai.anthropicModelId") || "claude-sonnet-4-5-20250929";
+
+  outputChannel.appendLine(`Anthropic: model=${modelId}`);
+
+  const client = new Anthropic({ apiKey });
+
+  const response = await client.messages.create(
+    {
+      model: modelId,
+      max_tokens: 4096,
+      messages: [{ role: "user", content: buildPrompt(ctx) }],
+    },
+    { signal: tokenToAbortSignal(token) },
+  );
+
+  const textBlock = response.content.find((b) => b.type === "text");
+  const text = textBlock?.text;
+  if (!text) {
+    outputChannel.appendLine("Anthropic: empty response");
+    return null;
+  }
+
+  outputChannel.appendLine(`Anthropic: response ${text.length} chars`);
+  try {
+    const parsed = parseJsonResponse<ReleaseNotesResult>(text);
+    return validateResponse(parsed);
+  } catch (err) {
+    outputChannel.appendLine(`Anthropic: failed to parse response: ${err instanceof Error ? err.message : String(err)}`);
+    return null;
+  }
+}
+
 async function generateWithVscodeLm(
   ctx: GenerateReleaseNotesContext,
   token: vscode.CancellationToken,
@@ -194,6 +240,7 @@ async function generateWithVscodeLm(
 export async function generateReleaseNotesWithAI(
   ctx: GenerateReleaseNotesContext,
   token: vscode.CancellationToken,
+  credProvider?: VscodeCredentialProvider,
 ): Promise<ReleaseNotesResult | null> {
   const config = vscode.workspace.getConfiguration("specPilot");
   const provider = config.get<string>("ai.provider", "auto");
@@ -205,11 +252,16 @@ export async function generateReleaseNotesWithAI(
       return await generateWithBedrock(ctx, token);
     }
 
+    if (provider === "anthropic") {
+      if (!credProvider) return null;
+      return await generateWithAnthropic(ctx, token, credProvider);
+    }
+
     if (provider === "vscode-lm") {
       return await generateWithVscodeLm(ctx, token);
     }
 
-    // Auto: try Bedrock first, fall back to vscode.lm
+    // Auto: try Bedrock -> Anthropic -> vscode.lm
     try {
       const result = await generateWithBedrock(ctx, token);
       if (result) {
@@ -220,13 +272,28 @@ export async function generateReleaseNotesWithAI(
       outputChannel.appendLine(`Bedrock failed: ${err instanceof Error ? err.message : String(err)}`);
     }
 
+    if (credProvider) {
+      try {
+        const result = await generateWithAnthropic(ctx, token, credProvider);
+        if (result) {
+          outputChannel.appendLine("Generation successful (Anthropic).");
+          return result;
+        }
+      } catch (err) {
+        outputChannel.appendLine(`Anthropic failed: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+
     const result = await generateWithVscodeLm(ctx, token);
     if (result) {
       outputChannel.appendLine("Generation successful (vscode.lm).");
       return result;
     }
 
-    outputChannel.appendLine("No AI provider available.");
+    outputChannel.appendLine(
+      "No AI provider returned results. Configure: Bedrock (AWS credentials), " +
+      "Anthropic API (run 'SpecPilot: Set Anthropic API Key'), or VS Code LM (GitHub Copilot)."
+    );
     return null;
   } catch (err) {
     outputChannel.appendLine(`Generation failed: ${err instanceof Error ? err.message : String(err)}`);

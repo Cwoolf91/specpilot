@@ -1,8 +1,10 @@
 import * as vscode from "vscode";
+import Anthropic from "@anthropic-ai/sdk";
 import { BedrockRuntimeClient, ConverseStreamCommand } from "@aws-sdk/client-bedrock-runtime";
 import { fromIni } from "@aws-sdk/credential-providers";
 import { parseJsonResponse } from "../../core/utils.js";
 import type { AiAnalysis } from "../../core/types.js";
+import type { VscodeCredentialProvider } from "../credentials.js";
 
 export interface ExistingEpicContext {
   key: string;
@@ -248,6 +250,59 @@ async function generateWithBedrock(
   }
 }
 
+async function generateWithAnthropic(
+  ctx: GenerateAnalysisContext,
+  token: vscode.CancellationToken,
+  credProvider: VscodeCredentialProvider,
+): Promise<AiAnalysis | null> {
+  const apiKey = await credProvider.getAnthropicApiKey();
+  if (!apiKey) {
+    outputChannel.appendLine("Anthropic: no API key configured");
+    return null;
+  }
+
+  const config = vscode.workspace.getConfiguration("specPilot");
+  const modelId = config.get<string>("ai.anthropicModelId") || "claude-sonnet-4-5-20250929";
+
+  outputChannel.appendLine(`Anthropic: model=${modelId} (extended thinking enabled)`);
+
+  const client = new Anthropic({ apiKey });
+
+  const stream = client.messages.stream(
+    {
+      model: modelId,
+      max_tokens: 128000,
+      thinking: { type: "enabled", budget_tokens: 50000 },
+      messages: [{ role: "user", content: buildPrompt(ctx) }],
+    },
+    { signal: tokenToAbortSignal(token) },
+  );
+
+  let text = "";
+  for await (const event of stream) {
+    if (
+      event.type === "content_block_delta" &&
+      event.delta.type === "text_delta"
+    ) {
+      text += event.delta.text;
+    }
+  }
+
+  if (!text) {
+    outputChannel.appendLine("Anthropic: empty response (no text in stream)");
+    return null;
+  }
+
+  outputChannel.appendLine(`Anthropic: response ${text.length} chars`);
+  try {
+    const parsed = parseJsonResponse<AiAnalysis>(text);
+    return validateResponse(parsed);
+  } catch (err) {
+    outputChannel.appendLine(`Anthropic: failed to parse response: ${err instanceof Error ? err.message : String(err)}`);
+    return null;
+  }
+}
+
 async function generateWithVscodeLm(
   ctx: GenerateAnalysisContext,
   token: vscode.CancellationToken,
@@ -286,6 +341,7 @@ async function generateWithVscodeLm(
 export async function generateAnalysisWithAI(
   ctx: GenerateAnalysisContext,
   token: vscode.CancellationToken,
+  credProvider?: VscodeCredentialProvider,
 ): Promise<AiAnalysis | null> {
   const config = vscode.workspace.getConfiguration("specPilot");
   const provider = config.get<string>("ai.provider", "auto");
@@ -297,11 +353,16 @@ export async function generateAnalysisWithAI(
       return await generateWithBedrock(ctx, token);
     }
 
+    if (provider === "anthropic") {
+      if (!credProvider) return null;
+      return await generateWithAnthropic(ctx, token, credProvider);
+    }
+
     if (provider === "vscode-lm") {
       return await generateWithVscodeLm(ctx, token);
     }
 
-    // Auto: try Bedrock first, fall back to vscode.lm
+    // Auto: try Bedrock -> Anthropic -> vscode.lm
     try {
       const result = await generateWithBedrock(ctx, token);
       if (result) {
@@ -312,13 +373,28 @@ export async function generateAnalysisWithAI(
       outputChannel.appendLine(`Bedrock failed: ${err instanceof Error ? err.message : String(err)}`);
     }
 
+    if (credProvider) {
+      try {
+        const result = await generateWithAnthropic(ctx, token, credProvider);
+        if (result) {
+          outputChannel.appendLine("Generation successful (Anthropic).");
+          return result;
+        }
+      } catch (err) {
+        outputChannel.appendLine(`Anthropic failed: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+
     const result = await generateWithVscodeLm(ctx, token);
     if (result) {
       outputChannel.appendLine("Generation successful (vscode.lm).");
       return result;
     }
 
-    outputChannel.appendLine("No AI provider available.");
+    outputChannel.appendLine(
+      "No AI provider returned results. Configure: Bedrock (AWS credentials), " +
+      "Anthropic API (run 'SpecPilot: Set Anthropic API Key'), or VS Code LM (GitHub Copilot)."
+    );
     return null;
   } catch (err) {
     outputChannel.appendLine(`Generation failed: ${err instanceof Error ? err.message : String(err)}`);
@@ -398,6 +474,7 @@ Respond with ONLY a JSON object (no markdown fences, no explanation). Wrap the s
 export async function generateEpicStoriesWithAI(
   ctx: EpicStoryGenContext,
   token: vscode.CancellationToken,
+  credProvider?: VscodeCredentialProvider,
 ): Promise<AiAnalysis | null> {
   const config = vscode.workspace.getConfiguration("specPilot");
   const provider = config.get<string>("ai.provider", "auto");
@@ -445,6 +522,36 @@ export async function generateEpicStoriesWithAI(
     return validateResponse(parsed);
   };
 
+  const runAnthropic = async (): Promise<AiAnalysis | null> => {
+    if (!credProvider) return null;
+    const apiKey = await credProvider.getAnthropicApiKey();
+    if (!apiKey) return null;
+
+    const modelId = config.get<string>("ai.anthropicModelId") || "claude-sonnet-4-5-20250929";
+    const client = new Anthropic({ apiKey });
+
+    const stream = client.messages.stream(
+      {
+        model: modelId,
+        max_tokens: 128000,
+        thinking: { type: "enabled", budget_tokens: 50000 },
+        messages: [{ role: "user", content: prompt }],
+      },
+      { signal: tokenToAbortSignal(token) },
+    );
+
+    let text = "";
+    for await (const event of stream) {
+      if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+        text += event.delta.text;
+      }
+    }
+    if (!text) return null;
+    outputChannel.appendLine(`Anthropic: response ${text.length} chars`);
+    const parsed = parseJsonResponse<AiAnalysis>(text);
+    return validateResponse(parsed);
+  };
+
   const runVscodeLm = async (): Promise<AiAnalysis | null> => {
     const models = await vscode.lm.selectChatModels();
     if (models.length === 0) return null;
@@ -460,13 +567,21 @@ export async function generateEpicStoriesWithAI(
 
   try {
     if (provider === "bedrock") return await runBedrock();
+    if (provider === "anthropic") return await runAnthropic();
     if (provider === "vscode-lm") return await runVscodeLm();
 
+    // Auto: Bedrock -> Anthropic -> vscode.lm
     try {
       const result = await runBedrock();
       if (result) return result;
     } catch (err) {
       outputChannel.appendLine(`Bedrock failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
+    try {
+      const result = await runAnthropic();
+      if (result) return result;
+    } catch (err) {
+      outputChannel.appendLine(`Anthropic failed: ${err instanceof Error ? err.message : String(err)}`);
     }
     return await runVscodeLm();
   } catch (err) {

@@ -433,6 +433,7 @@ export class MessageHandler {
       const analysis = await generateAnalysisWithAI(
         { statSummary, categories, routes, existingEpics, focusArea },
         tokenSource.token,
+        this.credProvider,
       );
 
       if (!analysis) {
@@ -482,6 +483,7 @@ export class MessageHandler {
       const notes = await generateReleaseNotesWithAI(
         { issues, versionName },
         tokenSource.token,
+        this.credProvider,
       );
 
       if (!notes) {
@@ -534,6 +536,7 @@ export class MessageHandler {
       const analysis = await generateEpicStoriesWithAI(
         { epicKey, epicSummary, epicDescription, existingStories, focusArea },
         tokenSource.token,
+        this.credProvider,
       );
 
       if (!analysis) {

@@ -12,7 +12,41 @@ permissions:
   contents: write
 
 jobs:
+  test:
+    # Gate releases on the full test suite. Skip for [skip ci] commits
+    # (which are the version-bump commits this workflow itself pushes).
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck tests
+        run: npm run typecheck:tests
+
+      - name: Unit + webview tests
+        run: npm test
+
+      - name: Build extension for integration tests
+        run: npm run build:extension
+
+      - name: Integration tests (Extension Host)
+        run: xvfb-run -a npm run test:integration
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E tests
+        run: npm run test:e2e
+
   release:
+    needs: test
     runs-on: ubuntu-latest
     # Skip version bump commits from CI
     if: "!contains(github.event.head_commit.message, '[skip ci]')"

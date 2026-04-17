@@ -1,10 +1,12 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
+import Anthropic from "@anthropic-ai/sdk";
 import { BedrockRuntimeClient, ConverseCommand } from "@aws-sdk/client-bedrock-runtime";
 import { fromIni } from "@aws-sdk/credential-providers";
 import { parseJsonResponse } from "../../core/utils.js";
 import { STORY_TEMPLATE } from "../../core/templates.js";
+import type { VscodeCredentialProvider } from "../credentials.js";
 
 export interface EnhanceIssueContext {
   issueType: "Bug" | "Story";
@@ -230,6 +232,50 @@ async function enhanceWithBedrock(
   }
 }
 
+async function enhanceWithAnthropic(
+  context: EnhanceIssueContext,
+  token: vscode.CancellationToken,
+  credProvider: VscodeCredentialProvider,
+): Promise<EnhancedIssue | null> {
+  const apiKey = await credProvider.getAnthropicApiKey();
+  if (!apiKey) {
+    outputChannel.appendLine("Anthropic: no API key configured");
+    return null;
+  }
+
+  const config = vscode.workspace.getConfiguration("specPilot");
+  const modelId = config.get<string>("ai.anthropicModelId") || "claude-sonnet-4-5-20250929";
+
+  outputChannel.appendLine(`Anthropic: model=${modelId}`);
+
+  const client = new Anthropic({ apiKey });
+
+  const response = await client.messages.create(
+    {
+      model: modelId,
+      max_tokens: 2048,
+      messages: [{ role: "user", content: buildPrompt(context) }],
+    },
+    { signal: tokenToAbortSignal(token) },
+  );
+
+  const textBlock = response.content.find((b) => b.type === "text");
+  const text = textBlock?.text;
+  if (!text) {
+    outputChannel.appendLine("Anthropic: empty response");
+    return null;
+  }
+
+  outputChannel.appendLine(`Anthropic: response ${text.length} chars`);
+  try {
+    const parsed = parseJsonResponse<EnhancedIssue>(text);
+    return validateResponse(parsed);
+  } catch (err) {
+    outputChannel.appendLine(`Anthropic: failed to parse response: ${err instanceof Error ? err.message : String(err)}`);
+    return null;
+  }
+}
+
 async function enhanceWithVscodeLm(
   context: EnhanceIssueContext,
   token: vscode.CancellationToken,
@@ -267,7 +313,8 @@ async function enhanceWithVscodeLm(
 
 export async function enhanceIssueWithAI(
   context: EnhanceIssueContext,
-  token: vscode.CancellationToken
+  token: vscode.CancellationToken,
+  credProvider?: VscodeCredentialProvider,
 ): Promise<EnhancedIssue | null> {
   const config = vscode.workspace.getConfiguration("specPilot");
   const provider = config.get<string>("ai.provider", "auto");
@@ -279,11 +326,16 @@ export async function enhanceIssueWithAI(
       return await enhanceWithBedrock(context, token);
     }
 
+    if (provider === "anthropic") {
+      if (!credProvider) return null;
+      return await enhanceWithAnthropic(context, token, credProvider);
+    }
+
     if (provider === "vscode-lm") {
       return await enhanceWithVscodeLm(context, token);
     }
 
-    // Auto: try Bedrock first, fall back to vscode.lm
+    // Auto: try Bedrock -> Anthropic -> vscode.lm
     try {
       const result = await enhanceWithBedrock(context, token);
       if (result) {
@@ -294,13 +346,28 @@ export async function enhanceIssueWithAI(
       outputChannel.appendLine(`Bedrock failed: ${err instanceof Error ? err.message : String(err)}`);
     }
 
+    if (credProvider) {
+      try {
+        const result = await enhanceWithAnthropic(context, token, credProvider);
+        if (result) {
+          outputChannel.appendLine("Enhancement successful (Anthropic).");
+          return result;
+        }
+      } catch (err) {
+        outputChannel.appendLine(`Anthropic failed: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+
     const result = await enhanceWithVscodeLm(context, token);
     if (result) {
       outputChannel.appendLine("Enhancement successful (vscode.lm).");
       return result;
     }
 
-    outputChannel.appendLine("No AI provider available.");
+    outputChannel.appendLine(
+      "No AI provider returned results. Configure: Bedrock (AWS credentials), " +
+      "Anthropic API (run 'SpecPilot: Set Anthropic API Key'), or VS Code LM (GitHub Copilot)."
+    );
     return null;
   } catch (err) {
     outputChannel.appendLine(`Enhancement failed: ${err instanceof Error ? err.message : String(err)}`);
