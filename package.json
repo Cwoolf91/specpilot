@@ -2,7 +2,7 @@
   "name": "specpilot",
   "displayName": "SpecPilot",
   "description": "Jira workflow tools — vibe code epics, AI-powered stories, release notes, automation rules, and more.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "publisher": "woolfpakstudios",
   "repository": {
