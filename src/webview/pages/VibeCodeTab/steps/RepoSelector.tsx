@@ -81,11 +81,16 @@ export default function RepoSelector({
 
       <div className="form-section">
         <Input
-          label="App Directory (monorepo subdirectory)"
+          label="App Directory"
           value={appDir}
           onChange={(e) => onChange("appDir", e.target.value)}
-          placeholder="apps/customer-portal"
+          placeholder="."
         />
+        <p className="description">
+          Use <code>.</code> for a standalone repo (app at the root). For
+          monorepos, point to the app subdirectory, e.g. <code>apps/web</code>,{" "}
+          <code>packages/frontend</code>, or <code>services/api</code>.
+        </p>
       </div>
 
       <div className="step-nav">

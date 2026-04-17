@@ -102,7 +102,7 @@ export async function captureStoryScreenshots(
     }
 
     // Resolve app directory — standalone repos have the app at root,
-    // monorepos have it under a subdirectory like apps/customer-portal
+    // monorepos have it under a subdirectory like apps/web or packages/frontend
     const candidatePath = config.appDir === "." ? workDir : join(workDir, config.appDir);
     const appFullPath = existsSync(candidatePath) ? candidatePath : workDir;
 
