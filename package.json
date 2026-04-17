@@ -4,10 +4,14 @@
   "description": "Jira workflow tools — vibe code epics, AI-powered stories, release notes, automation rules, and more.",
   "version": "1.0.0",
   "type": "module",
-  "publisher": "chriswoolf",
+  "publisher": "woolfpakstudios",
   "repository": {
     "type": "git",
     "url": "https://github.com/Cwoolf91/specpilot"
+  },
+  "homepage": "https://woolfpakstudios.com",
+  "bugs": {
+    "url": "https://github.com/Cwoolf91/specpilot/issues"
   },
   "icon": "resources/icon.png",
   "license": "MIT",
@@ -15,8 +19,12 @@
     "vscode": "^1.90.0"
   },
   "categories": [
-    "Other",
-    "Testing"
+    "AI",
+    "Chat",
+    "SCM Providers",
+    "Testing",
+    "Visualization",
+    "Other"
   ],
   "keywords": [
     "jira",

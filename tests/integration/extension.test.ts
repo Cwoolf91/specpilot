@@ -1,7 +1,7 @@
 import * as assert from "assert";
 import * as vscode from "vscode";
 
-const EXTENSION_ID = "chriswoolf.specpilot";
+const EXTENSION_ID = "woolfpakstudios.specpilot";
 
 const EXPECTED_COMMANDS = [
   "specPilot.openDashboard",
