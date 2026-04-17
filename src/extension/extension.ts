@@ -5,6 +5,7 @@ import { DashboardPanel } from "./panels/dashboard-panel.js";
 import { registerSetCredentials } from "./commands/set-credentials.js";
 import { registerOpenDashboard } from "./commands/open-dashboard.js";
 import { registerCreateFromSelection } from "./commands/create-from-selection.js";
+import { registerSetAnthropicApiKey } from "./commands/set-anthropic-key.js";
 import { VibeEpicsTreeProvider } from "./views/vibe-epics-tree.js";
 import { SprintTreeProvider } from "./views/sprint-tree.js";
 import { AutomationTreeProvider } from "./views/automation-tree.js";
@@ -62,6 +63,7 @@ export function activate(context: vscode.ExtensionContext) {
   });
   registerOpenDashboard(context, () => dashboard!);
   registerCreateFromSelection(context, credProvider);
+  registerSetAnthropicApiKey(context, credProvider);
 
   context.subscriptions.push(
     vscode.commands.registerCommand("specPilot.refreshVibeEpics", () =>
@@ -82,6 +84,15 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("specPilot.checkForUpdates", () =>
       updateChecker?.checkForUpdates(false)
     )
+  );
+
+  // Refresh the Vibe Epics tree whenever the epic label setting changes.
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration("specPilot.epicLabel")) {
+        vibeTree.refresh();
+      }
+    })
   );
 }
 

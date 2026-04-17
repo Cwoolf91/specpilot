@@ -147,7 +147,8 @@ export class IssueReviewPanel {
               lineRange: data.lineRange,
               language: data.language,
             },
-            token
+            token,
+            this.credProvider,
           ).then((enhanced) => {
             if (token.isCancellationRequested) return;
             if (enhanced) {

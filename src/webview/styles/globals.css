@@ -661,6 +661,64 @@ h3 {
   margin-top: 8px;
 }
 
+.about-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.about-tagline {
+  margin-top: 16px;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.about-tagline a,
+.about-info a {
+  color: var(--vscode-textLink-foreground);
+  text-decoration: none;
+}
+
+.about-tagline a:hover,
+.about-info a:hover {
+  text-decoration: underline;
+}
+
+/* Credentials form */
+.credentials-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.credentials-form .input-group input:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Toast */
+.settings-toast {
+  padding: 10px 14px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  border: 1px solid transparent;
+}
+
+.settings-toast.toast-success {
+  background: var(--vscode-inputValidation-infoBackground, rgba(76, 175, 80, 0.1));
+  border-color: var(--vscode-testing-iconPassed, #4caf50);
+  color: var(--vscode-foreground);
+}
+
+.settings-toast.toast-error {
+  background: var(--vscode-inputValidation-errorBackground, rgba(244, 67, 54, 0.1));
+  border-color: var(--vscode-errorForeground, #f44336);
+  color: var(--vscode-errorForeground, #f44336);
+}
+
 /* Release Notes — Filter Row */
 .filter-row {
   display: flex;

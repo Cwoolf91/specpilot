@@ -12,7 +12,7 @@
  *   npx tsx scripts/create-epic-stories.ts \
  *     --vibe-repo /path/to/repo --vibe-branch feature/prototype \
  *     --target-repo /path/to/repo --target-branch main \
- *     --app-dir apps/customer-portal
+ *     --app-dir apps/web
  */
 
 import {

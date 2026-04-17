@@ -18,6 +18,14 @@ import type { AiAnalysis, JiraIssue, ReleaseNotesResult } from "../../core/types
 import type { ProgressReporter } from "../../core/progress.js";
 import { fetchEpicStories, fetchVibeCodeEpics, fetchEpicDetails, createStoriesForExistingEpic } from "../../core/jira/issues.js";
 import { getIssueTypes } from "../../core/jira/issue-types.js";
+import {
+  inspectTemplate,
+  saveTemplatePath,
+  clearTemplatePath,
+  scaffoldTemplate,
+  getBuiltInTemplate,
+  type TemplateKind,
+} from "../ai/template-loader.js";
 
 interface Message {
   type: string;
@@ -117,6 +125,30 @@ export class MessageHandler {
           return await this.handleSaveSettings(msg);
         case "getSettings":
           return await this.handleGetSettings(msg);
+        case "getAboutInfo":
+          return this.handleGetAboutInfo();
+        case "openExternal":
+          return await this.handleOpenExternal(msg);
+        case "getCredentialsForm":
+          return await this.handleGetCredentialsForm();
+        case "saveCredentialsForm":
+          return await this.handleSaveCredentialsForm(msg);
+        case "saveAnthropicKeyForm":
+          return await this.handleSaveAnthropicKeyForm(msg);
+        case "getEpicLabel":
+          return this.handleGetEpicLabel();
+        case "saveEpicLabel":
+          return await this.handleSaveEpicLabel(msg);
+        case "getTemplatesForm":
+          return this.handleGetTemplatesForm();
+        case "browseTemplate":
+          return await this.handleBrowseTemplate(msg);
+        case "scaffoldTemplate":
+          return await this.handleScaffoldTemplate(msg);
+        case "clearTemplatePath":
+          return await this.handleClearTemplatePath(msg);
+        case "viewTemplate":
+          return await this.handleViewTemplate(msg);
         default:
           this.postMessage({ type: "error", message: `Unknown message type: ${msg.type}` });
       }
@@ -433,6 +465,7 @@ export class MessageHandler {
       const analysis = await generateAnalysisWithAI(
         { statSummary, categories, routes, existingEpics, focusArea },
         tokenSource.token,
+        this.credProvider,
       );
 
       if (!analysis) {
@@ -482,6 +515,7 @@ export class MessageHandler {
       const notes = await generateReleaseNotesWithAI(
         { issues, versionName },
         tokenSource.token,
+        this.credProvider,
       );
 
       if (!notes) {
@@ -534,6 +568,7 @@ export class MessageHandler {
       const analysis = await generateEpicStoriesWithAI(
         { epicKey, epicSummary, epicDescription, existingStories, focusArea },
         tokenSource.token,
+        this.credProvider,
       );
 
       if (!analysis) {
@@ -685,6 +720,194 @@ export class MessageHandler {
       throw new Error(`Command not allowed: ${command}`);
     }
     await vscode.commands.executeCommand(command);
+  }
+
+  private handleGetAboutInfo() {
+    const ext = vscode.extensions.getExtension("woolfpakstudios.specpilot");
+    const pkg = (ext?.packageJSON ?? {}) as {
+      version?: string;
+      displayName?: string;
+      publisher?: string;
+      homepage?: string;
+      repository?: { url?: string };
+      bugs?: { url?: string };
+      license?: string;
+    };
+    const repoUrl = pkg.repository?.url?.replace(/\.git$/, "") ?? "https://github.com/Cwoolf91/specpilot";
+    this.postMessage({
+      type: "aboutInfo",
+      about: {
+        name: pkg.displayName ?? "SpecPilot",
+        version: pkg.version ?? "0.0.0",
+        publisher: "Woolf Pak Studios",
+        publisherId: pkg.publisher ?? "woolfpakstudios",
+        license: pkg.license ?? "MIT",
+        homepage: pkg.homepage ?? "https://woolfpakstudios.com",
+        repository: repoUrl,
+        bugs: pkg.bugs?.url ?? `${repoUrl}/issues`,
+        discord: "https://discord.gg/GTqFP4gDJr",
+        marketplace: `https://marketplace.visualstudio.com/items?itemName=${pkg.publisher ?? "woolfpakstudios"}.specpilot`,
+      },
+    });
+  }
+
+  private async handleOpenExternal(msg: Message) {
+    const url = requireString(msg, "url");
+    try {
+      const parsed = new URL(url);
+      if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+        throw new Error("Only http(s) URLs allowed");
+      }
+    } catch {
+      throw new Error(`Invalid URL: ${url}`);
+    }
+    await vscode.env.openExternal(vscode.Uri.parse(url));
+  }
+
+  private async handleGetCredentialsForm() {
+    let creds: { baseUrl: string; email: string; projectKey: string } | null = null;
+    try {
+      const c = await this.credProvider.getCredentials();
+      creds = { baseUrl: c.baseUrl, email: c.email, projectKey: c.projectKey };
+    } catch {
+      // not configured yet
+    }
+    const hasAnthropicKey = await this.credProvider.hasAnthropicApiKey();
+    this.postMessage({
+      type: "credentialsForm",
+      form: {
+        baseUrl: creds?.baseUrl ?? "",
+        email: creds?.email ?? "",
+        projectKey: creds?.projectKey ?? "",
+        hasApiToken: creds !== null,
+        hasAnthropicKey,
+      },
+    });
+  }
+
+  private async handleSaveCredentialsForm(msg: Message) {
+    const baseUrl = requireString(msg, "baseUrl").trim().replace(/\/+$/, "");
+    const email = requireString(msg, "email").trim();
+    const projectKey = requireString(msg, "projectKey").trim();
+    const apiTokenInput = typeof msg.apiToken === "string" ? msg.apiToken : "";
+
+    if (!/^https:\/\/.+/.test(baseUrl)) {
+      throw new Error("Jira Base URL must use HTTPS (e.g., https://yoursite.atlassian.net).");
+    }
+
+    // Blank token = keep existing. Require at least one stored or provided token.
+    let apiToken = apiTokenInput.trim();
+    if (!apiToken) {
+      try {
+        const existing = await this.credProvider.getCredentials();
+        apiToken = existing.apiToken;
+      } catch {
+        throw new Error("API token is required for the first-time setup.");
+      }
+    }
+
+    await this.credProvider.storeCredentials({ baseUrl, email, apiToken, projectKey });
+    this.postMessage({ type: "credentialsSaved" });
+    await this.handleGetConnectionStatus();
+    await this.handleGetCredentialsForm();
+  }
+
+  private async handleSaveAnthropicKeyForm(msg: Message) {
+    const apiKey = requireString(msg, "apiKey").trim();
+    if (!apiKey.startsWith("sk-")) {
+      throw new Error("Anthropic API keys start with 'sk-'.");
+    }
+    await this.credProvider.storeAnthropicApiKey(apiKey);
+    this.postMessage({ type: "anthropicKeySaved" });
+    await this.handleGetCredentialsForm();
+  }
+
+  private handleGetEpicLabel() {
+    const config = vscode.workspace.getConfiguration("specPilot");
+    const value = config.get<string>("epicLabel", "vibe-code");
+    const defaultValue = (config.inspect<string>("epicLabel")?.defaultValue as string | undefined) ?? "vibe-code";
+    this.postMessage({ type: "epicLabel", value, defaultValue });
+  }
+
+  private async handleSaveEpicLabel(msg: Message) {
+    const rawValue = typeof msg.value === "string" ? msg.value : "";
+    const value = rawValue.trim();
+    if (!value) {
+      throw new Error("Epic label cannot be empty.");
+    }
+    if (!/^[\w.-]+$/.test(value)) {
+      throw new Error("Epic label may only contain letters, numbers, hyphens, underscores, and dots.");
+    }
+    await vscode.workspace
+      .getConfiguration("specPilot")
+      .update("epicLabel", value, vscode.ConfigurationTarget.Global);
+    this.postMessage({ type: "epicLabelSaved", value });
+  }
+
+  private handleGetTemplatesForm() {
+    const story = inspectTemplate("story");
+    const epic = inspectTemplate("epic");
+    this.postMessage({
+      type: "templatesForm",
+      form: { story, epic },
+    });
+  }
+
+  private requireTemplateKind(msg: Message): TemplateKind {
+    const kind = typeof msg.kind === "string" ? msg.kind : "";
+    if (kind !== "story" && kind !== "epic") {
+      throw new Error("kind must be 'story' or 'epic'");
+    }
+    return kind;
+  }
+
+  private async handleBrowseTemplate(msg: Message) {
+    const kind = this.requireTemplateKind(msg);
+    const defaultUri = vscode.workspace.workspaceFolders?.[0]?.uri;
+    const result = await vscode.window.showOpenDialog({
+      canSelectFolders: false,
+      canSelectFiles: true,
+      canSelectMany: false,
+      openLabel: `Select ${kind} template`,
+      defaultUri,
+      filters: { Templates: ["md", "txt", "template"] },
+    });
+    if (!result?.[0]) return;
+    const stored = await saveTemplatePath(kind, result[0].fsPath);
+    this.postMessage({ type: "templatePathSaved", kind, stored });
+    this.handleGetTemplatesForm();
+  }
+
+  private async handleScaffoldTemplate(msg: Message) {
+    const kind = this.requireTemplateKind(msg);
+    const fullPath = await scaffoldTemplate(kind);
+    this.postMessage({ type: "templateScaffolded", kind, path: fullPath });
+    const doc = await vscode.workspace.openTextDocument(fullPath);
+    await vscode.window.showTextDocument(doc, vscode.ViewColumn.Beside);
+    this.handleGetTemplatesForm();
+  }
+
+  private async handleClearTemplatePath(msg: Message) {
+    const kind = this.requireTemplateKind(msg);
+    await clearTemplatePath(kind);
+    this.postMessage({ type: "templatePathCleared", kind });
+    this.handleGetTemplatesForm();
+  }
+
+  private async handleViewTemplate(msg: Message) {
+    const kind = this.requireTemplateKind(msg);
+    const info = inspectTemplate(kind);
+    if (info.usingCustom && info.resolvedPath) {
+      const doc = await vscode.workspace.openTextDocument(info.resolvedPath);
+      await vscode.window.showTextDocument(doc, vscode.ViewColumn.Beside);
+      return;
+    }
+    // Show built-in template in an untitled markdown buffer
+    const doc = await vscode.workspace.openTextDocument({
+      language: "markdown",
+      content: getBuiltInTemplate(kind),
+    });
+    await vscode.window.showTextDocument(doc, vscode.ViewColumn.Beside);
   }
 
   private async handleSaveSettings(msg: Message) {
