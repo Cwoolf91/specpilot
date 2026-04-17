@@ -121,6 +121,12 @@ export class MessageHandler {
           return this.handleGetAboutInfo();
         case "openExternal":
           return await this.handleOpenExternal(msg);
+        case "getCredentialsForm":
+          return await this.handleGetCredentialsForm();
+        case "saveCredentialsForm":
+          return await this.handleSaveCredentialsForm(msg);
+        case "saveAnthropicKeyForm":
+          return await this.handleSaveAnthropicKeyForm(msg);
         default:
           this.postMessage({ type: "error", message: `Unknown message type: ${msg.type}` });
       }
@@ -734,6 +740,64 @@ export class MessageHandler {
       throw new Error(`Invalid URL: ${url}`);
     }
     await vscode.env.openExternal(vscode.Uri.parse(url));
+  }
+
+  private async handleGetCredentialsForm() {
+    let creds: { baseUrl: string; email: string; projectKey: string } | null = null;
+    try {
+      const c = await this.credProvider.getCredentials();
+      creds = { baseUrl: c.baseUrl, email: c.email, projectKey: c.projectKey };
+    } catch {
+      // not configured yet
+    }
+    const hasAnthropicKey = await this.credProvider.hasAnthropicApiKey();
+    this.postMessage({
+      type: "credentialsForm",
+      form: {
+        baseUrl: creds?.baseUrl ?? "",
+        email: creds?.email ?? "",
+        projectKey: creds?.projectKey ?? "",
+        hasApiToken: creds !== null,
+        hasAnthropicKey,
+      },
+    });
+  }
+
+  private async handleSaveCredentialsForm(msg: Message) {
+    const baseUrl = requireString(msg, "baseUrl").trim().replace(/\/+$/, "");
+    const email = requireString(msg, "email").trim();
+    const projectKey = requireString(msg, "projectKey").trim();
+    const apiTokenInput = typeof msg.apiToken === "string" ? msg.apiToken : "";
+
+    if (!/^https:\/\/.+/.test(baseUrl)) {
+      throw new Error("Jira Base URL must use HTTPS (e.g., https://yoursite.atlassian.net).");
+    }
+
+    // Blank token = keep existing. Require at least one stored or provided token.
+    let apiToken = apiTokenInput.trim();
+    if (!apiToken) {
+      try {
+        const existing = await this.credProvider.getCredentials();
+        apiToken = existing.apiToken;
+      } catch {
+        throw new Error("API token is required for the first-time setup.");
+      }
+    }
+
+    await this.credProvider.storeCredentials({ baseUrl, email, apiToken, projectKey });
+    this.postMessage({ type: "credentialsSaved" });
+    await this.handleGetConnectionStatus();
+    await this.handleGetCredentialsForm();
+  }
+
+  private async handleSaveAnthropicKeyForm(msg: Message) {
+    const apiKey = requireString(msg, "apiKey").trim();
+    if (!apiKey.startsWith("sk-")) {
+      throw new Error("Anthropic API keys start with 'sk-'.");
+    }
+    await this.credProvider.storeAnthropicApiKey(apiKey);
+    this.postMessage({ type: "anthropicKeySaved" });
+    await this.handleGetCredentialsForm();
   }
 
   private async handleSaveSettings(msg: Message) {
