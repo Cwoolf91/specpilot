@@ -104,11 +104,28 @@ Highlight code and create a Jira Bug or Story directly:
 - **Context Menu:** Right-click on a selection → **Create Issue from Selection**
 - **Command Palette:** `SpecPilot: Create Issue from Selection`
 
-AI enhances the ticket using BDD templates:
+<p align="center">
+  <img src="resources/screenshots/create-issue-context-menu.png" alt="Right-click context menu showing Create Issue from Selection" width="420" />
+</p>
+
+Pick the issue type, enter a short summary, and (optionally) add extra context:
+
+<p align="center">
+  <img src="resources/screenshots/create-issue-type.png" alt="Issue type picker: Bug or Story" width="560" /><br/>
+  <img src="resources/screenshots/create-issue-summary.png" alt="Summary input" width="560" /><br/>
+  <img src="resources/screenshots/create-issue-description.png" alt="Optional description input" width="560" />
+</p>
+
+A review panel opens beside your editor. AI enhances the ticket in the background using BDD templates — you can edit every field before clicking **Create Issue**:
+
+<p align="center">
+  <img src="resources/screenshots/create-issue-review.png" alt="AI-enhanced Jira story review panel" width="620" />
+</p>
+
 - **Stories** — User Story, Why (business value), Acceptance Criteria (Given/When/Then), Release Instructions
 - **Bugs** — problem statement, expected vs actual behavior, reproduction steps
 
-Bring your own template via `specPilot.ai.storyTemplatePath` / `specPilot.ai.epicTemplatePath`.
+Bring your own templates from the dashboard's **Settings → BDD Templates** section, or via the `specPilot.ai.storyTemplatePath` / `specPilot.ai.epicTemplatePath` settings.
 
 ### Vibe Code → Epics & Stories
 
