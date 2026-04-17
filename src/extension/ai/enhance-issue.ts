@@ -1,11 +1,9 @@
 import * as vscode from "vscode";
-import * as fs from "fs";
-import * as path from "path";
 import Anthropic from "@anthropic-ai/sdk";
 import { BedrockRuntimeClient, ConverseCommand } from "@aws-sdk/client-bedrock-runtime";
 import { fromIni } from "@aws-sdk/credential-providers";
 import { parseJsonResponse } from "../../core/utils.js";
-import { STORY_TEMPLATE } from "../../core/templates.js";
+import { loadTemplate } from "./template-loader.js";
 import type { VscodeCredentialProvider } from "../credentials.js";
 
 export interface EnhanceIssueContext {
@@ -32,41 +30,6 @@ const MAX_CODE_CHARS = 3000;
 
 const outputChannel = vscode.window.createOutputChannel("SpecPilot: AI Enhancement");
 
-const ALLOWED_TEMPLATE_EXTENSIONS = new Set([".md", ".txt", ".template"]);
-
-function loadTemplate(settingKey: string, fallback: string): string {
-  const config = vscode.workspace.getConfiguration("specPilot");
-  const customPath = config.get<string>(settingKey, "");
-  if (customPath) {
-    const ext = path.extname(customPath).toLowerCase();
-    if (!ALLOWED_TEMPLATE_EXTENSIONS.has(ext)) {
-      outputChannel.appendLine("Custom template rejected: unsupported extension");
-      return fallback;
-    }
-    // Resolve and restrict to workspace folders
-    const resolved = path.resolve(customPath);
-    const workspaceFolders = vscode.workspace.workspaceFolders;
-    const inWorkspace = workspaceFolders?.some(
-      (f) => resolved.startsWith(f.uri.fsPath + path.sep) || resolved === f.uri.fsPath
-    );
-    if (!inWorkspace) {
-      outputChannel.appendLine("Custom template rejected: path outside workspace");
-      return fallback;
-    }
-    try {
-      const content = fs.readFileSync(resolved, "utf-8");
-      if (!content.trim()) {
-        outputChannel.appendLine("Custom template empty, using default.");
-        return fallback;
-      }
-      return content;
-    } catch (err) {
-      outputChannel.appendLine(`Failed to read custom template: ${err instanceof Error ? err.message : String(err)}`);
-    }
-  }
-  return fallback;
-}
-
 function buildPrompt(ctx: EnhanceIssueContext): string {
   const codeTruncated = ctx.selectedCode.length > MAX_CODE_CHARS;
   const code = codeTruncated
@@ -82,7 +45,7 @@ ${code}
 \`\`\`${codeTruncated ? `\n(truncated — full selection is ${totalLines} lines)` : ""}`;
 
   if (ctx.issueType === "Story") {
-    const template = loadTemplate("ai.storyTemplatePath", STORY_TEMPLATE);
+    const template = loadTemplate("story");
 
     return `You are a Jira ticket writer for a software engineering team. Given code context and a brief description, produce an enhanced Jira ticket following the BDD Story template below.
 

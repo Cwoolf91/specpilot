@@ -34,6 +34,20 @@ interface CredentialsForm {
   hasAnthropicKey: boolean;
 }
 
+interface TemplateInfo {
+  kind: "story" | "epic";
+  configuredPath: string;
+  resolvedPath: string | null;
+  usingCustom: boolean;
+  exists: boolean;
+  error: string | null;
+}
+
+interface TemplatesForm {
+  story: TemplateInfo;
+  epic: TemplateInfo;
+}
+
 type Toast = { kind: "success" | "error"; text: string } | null;
 
 export default function SettingsTab() {
@@ -58,6 +72,8 @@ export default function SettingsTab() {
   const [epicLabelDraft, setEpicLabelDraft] = useState<string>("");
   const [editingEpicLabel, setEditingEpicLabel] = useState(false);
   const [savingEpicLabel, setSavingEpicLabel] = useState(false);
+
+  const [templates, setTemplates] = useState<TemplatesForm | null>(null);
 
   const [toast, setToast] = useState<Toast>(null);
 
@@ -107,6 +123,27 @@ export default function SettingsTab() {
           setEpicLabelDraft(value);
           break;
         }
+        case "templatesForm":
+          setTemplates(msg.form as TemplatesForm);
+          break;
+        case "templatePathSaved":
+          showToast({
+            kind: "success",
+            text: `${msg.kind === "story" ? "Story" : "Epic"} template set to ${msg.stored as string}.`,
+          });
+          break;
+        case "templatePathCleared":
+          showToast({
+            kind: "success",
+            text: `${msg.kind === "story" ? "Story" : "Epic"} template reset to built-in.`,
+          });
+          break;
+        case "templateScaffolded":
+          showToast({
+            kind: "success",
+            text: `Scaffolded ${msg.kind === "story" ? "story" : "epic"} template.`,
+          });
+          break;
         case "epicLabelSaved": {
           const value = (msg.value as string) || "vibe-code";
           setEpicLabel(value);
@@ -133,6 +170,11 @@ export default function SettingsTab() {
             "getEpicLabel",
             "saveEpicLabel",
             "openExternal",
+            "getTemplatesForm",
+            "browseTemplate",
+            "scaffoldTemplate",
+            "clearTemplatePath",
+            "viewTemplate",
           ]);
           if (typeof requestType === "string" && !SETTINGS_REQUESTS.has(requestType)) {
             break;
@@ -158,6 +200,7 @@ export default function SettingsTab() {
     sendMessage("getAboutInfo");
     sendMessage("getCredentialsForm");
     sendMessage("getEpicLabel");
+    sendMessage("getTemplatesForm");
   }, []);
 
   const openLink = (url: string) => sendMessage("openExternal", { url });
@@ -441,6 +484,80 @@ export default function SettingsTab() {
           </div>
         ) : (
           <Spinner text="Loading label..." />
+        )}
+      </div>
+
+      <div className="settings-section">
+        <h3>BDD Templates</h3>
+        <p className="description">
+          Customize the story and epic templates used by the AI when enhancing
+          issues, generating analyses, and breaking down epics. Leave as built-in
+          to use SpecPilot's defaults. Custom templates must live inside a
+          workspace folder (<code>.md</code>, <code>.txt</code>, or{" "}
+          <code>.template</code>).
+        </p>
+        {templates ? (
+          <div className="credentials-form">
+            {(["story", "epic"] as const).map((kind) => {
+              const info = templates[kind];
+              const label = kind === "story" ? "Story Template" : "Epic Template";
+              return (
+                <div key={kind} className="connection-card" style={{ marginBottom: 8 }}>
+                  <div className="connection-row">
+                    <span className="connection-label">{label}</span>
+                    <StatusBadge
+                      status={info.usingCustom ? "success" : "warning"}
+                      label={info.usingCustom ? "Custom" : "Built-in"}
+                    />
+                  </div>
+                  {info.configuredPath && (
+                    <div className="connection-row">
+                      <span className="connection-label">Path</span>
+                      <span>
+                        <code>{info.configuredPath}</code>
+                      </span>
+                    </div>
+                  )}
+                  {info.error && (
+                    <div className="connection-row">
+                      <span className="connection-label">Error</span>
+                      <span className="error-text">{info.error}</span>
+                    </div>
+                  )}
+                  <div className="settings-actions">
+                    <Button
+                      variant="secondary"
+                      onClick={() => sendMessage("browseTemplate", { kind })}
+                    >
+                      Browse...
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => sendMessage("scaffoldTemplate", { kind })}
+                    >
+                      Scaffold default
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => sendMessage("viewTemplate", { kind })}
+                    >
+                      View
+                    </Button>
+                    {info.configuredPath && (
+                      <Button
+                        variant="secondary"
+                        onClick={() => sendMessage("clearTemplatePath", { kind })}
+                      >
+                        Reset to built-in
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <Spinner text="Loading templates..." />
         )}
       </div>
 

@@ -78,12 +78,16 @@ export function registerCreateFromSelection(
           });
       if (!projectKey) return;
 
-      // Summary
-      const summary = await vscode.window.showInputBox({
+      // Summary (required — validate so blank Enter doesn't silently quit)
+      const summaryInput = await vscode.window.showInputBox({
         title: `${issueType.label} Summary`,
         prompt: `Brief description of the ${issueType.label.toLowerCase()}`,
         ignoreFocusOut: true,
+        validateInput: (value) =>
+          value.trim().length === 0 ? "Summary is required." : null,
       });
+      if (summaryInput === undefined) return; // user hit Escape
+      const summary = summaryInput.trim();
       if (!summary) return;
 
       // Additional description

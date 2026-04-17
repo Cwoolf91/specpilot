@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { BedrockRuntimeClient, ConverseStreamCommand } from "@aws-sdk/client-bedrock-runtime";
 import { fromIni } from "@aws-sdk/credential-providers";
 import { parseJsonResponse } from "../../core/utils.js";
+import { loadTemplate } from "./template-loader.js";
 import type { AiAnalysis } from "../../core/types.js";
 import type { VscodeCredentialProvider } from "../credentials.js";
 
@@ -56,6 +57,9 @@ ${epicLines}
 `;
   }
 
+  const epicTemplate = loadTemplate("epic");
+  const storyTemplate = loadTemplate("story");
+
   return `You are a senior software architect. Given a git diff summary comparing a prototype branch against production, produce a structured epic and story breakdown for Jira.
 
 ## Diff Summary (--stat)
@@ -73,6 +77,14 @@ ${ctx.focusArea}
 
 Only generate epics and stories that are directly relevant to this focus area. Ignore file changes that are unrelated.
 ` : ""}
+## BDD Epic Template
+Each epic title and description should follow the intent of this template:
+${epicTemplate}
+
+## BDD Story Template
+Each story title, description, and acceptance criteria should follow the intent of this template:
+${storyTemplate}
+
 RULES:
 - Group related changes into epics (feature areas).
 - Each epic should have a clear title and description.
@@ -426,6 +438,8 @@ ${storyLines}
 `;
   }
 
+  const storyTemplate = loadTemplate("story");
+
   return `You are a senior software architect. Given an existing Jira epic, break it down into implementable stories.
 
 ## Epic: ${ctx.epicKey}
@@ -438,6 +452,10 @@ ${existingStoriesSection}${ctx.focusArea ? `
 ${ctx.focusArea}
 Only generate stories directly relevant to this focus area.
 ` : ""}
+## BDD Story Template
+Each story title, description, and acceptance criteria should follow the intent of this template:
+${storyTemplate}
+
 RULES:
 - Generate stories that represent user-facing or developer-facing units of work for this epic.
 - Each story needs: title, description, acceptanceCriteria (array of strings), sourceFiles (empty array), screenshotRoutes (array of routes if visual, empty if not).

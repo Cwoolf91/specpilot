@@ -18,6 +18,14 @@ import type { AiAnalysis, JiraIssue, ReleaseNotesResult } from "../../core/types
 import type { ProgressReporter } from "../../core/progress.js";
 import { fetchEpicStories, fetchVibeCodeEpics, fetchEpicDetails, createStoriesForExistingEpic } from "../../core/jira/issues.js";
 import { getIssueTypes } from "../../core/jira/issue-types.js";
+import {
+  inspectTemplate,
+  saveTemplatePath,
+  clearTemplatePath,
+  scaffoldTemplate,
+  getBuiltInTemplate,
+  type TemplateKind,
+} from "../ai/template-loader.js";
 
 interface Message {
   type: string;
@@ -131,6 +139,16 @@ export class MessageHandler {
           return this.handleGetEpicLabel();
         case "saveEpicLabel":
           return await this.handleSaveEpicLabel(msg);
+        case "getTemplatesForm":
+          return this.handleGetTemplatesForm();
+        case "browseTemplate":
+          return await this.handleBrowseTemplate(msg);
+        case "scaffoldTemplate":
+          return await this.handleScaffoldTemplate(msg);
+        case "clearTemplatePath":
+          return await this.handleClearTemplatePath(msg);
+        case "viewTemplate":
+          return await this.handleViewTemplate(msg);
         default:
           this.postMessage({ type: "error", message: `Unknown message type: ${msg.type}` });
       }
@@ -824,6 +842,72 @@ export class MessageHandler {
       .getConfiguration("specPilot")
       .update("epicLabel", value, vscode.ConfigurationTarget.Global);
     this.postMessage({ type: "epicLabelSaved", value });
+  }
+
+  private handleGetTemplatesForm() {
+    const story = inspectTemplate("story");
+    const epic = inspectTemplate("epic");
+    this.postMessage({
+      type: "templatesForm",
+      form: { story, epic },
+    });
+  }
+
+  private requireTemplateKind(msg: Message): TemplateKind {
+    const kind = typeof msg.kind === "string" ? msg.kind : "";
+    if (kind !== "story" && kind !== "epic") {
+      throw new Error("kind must be 'story' or 'epic'");
+    }
+    return kind;
+  }
+
+  private async handleBrowseTemplate(msg: Message) {
+    const kind = this.requireTemplateKind(msg);
+    const defaultUri = vscode.workspace.workspaceFolders?.[0]?.uri;
+    const result = await vscode.window.showOpenDialog({
+      canSelectFolders: false,
+      canSelectFiles: true,
+      canSelectMany: false,
+      openLabel: `Select ${kind} template`,
+      defaultUri,
+      filters: { Templates: ["md", "txt", "template"] },
+    });
+    if (!result?.[0]) return;
+    const stored = await saveTemplatePath(kind, result[0].fsPath);
+    this.postMessage({ type: "templatePathSaved", kind, stored });
+    this.handleGetTemplatesForm();
+  }
+
+  private async handleScaffoldTemplate(msg: Message) {
+    const kind = this.requireTemplateKind(msg);
+    const fullPath = await scaffoldTemplate(kind);
+    this.postMessage({ type: "templateScaffolded", kind, path: fullPath });
+    const doc = await vscode.workspace.openTextDocument(fullPath);
+    await vscode.window.showTextDocument(doc, vscode.ViewColumn.Beside);
+    this.handleGetTemplatesForm();
+  }
+
+  private async handleClearTemplatePath(msg: Message) {
+    const kind = this.requireTemplateKind(msg);
+    await clearTemplatePath(kind);
+    this.postMessage({ type: "templatePathCleared", kind });
+    this.handleGetTemplatesForm();
+  }
+
+  private async handleViewTemplate(msg: Message) {
+    const kind = this.requireTemplateKind(msg);
+    const info = inspectTemplate(kind);
+    if (info.usingCustom && info.resolvedPath) {
+      const doc = await vscode.workspace.openTextDocument(info.resolvedPath);
+      await vscode.window.showTextDocument(doc, vscode.ViewColumn.Beside);
+      return;
+    }
+    // Show built-in template in an untitled markdown buffer
+    const doc = await vscode.workspace.openTextDocument({
+      language: "markdown",
+      content: getBuiltInTemplate(kind),
+    });
+    await vscode.window.showTextDocument(doc, vscode.ViewColumn.Beside);
   }
 
   private async handleSaveSettings(msg: Message) {
