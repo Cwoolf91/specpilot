@@ -31,6 +31,7 @@
 Every engineering team loses hours every sprint to the friction between **"we built a prototype"** and **"here are the Jira tickets engineering will actually build"**. SpecPilot closes that gap.
 
 - **Vibe Code → Jira** — diff a prototype branch against production, let AI propose epics and stories with acceptance criteria, review and edit inline, then create the tickets with screenshots attached.
+- **Ticket Jumpstart** — `Cmd+Alt+J` and you're in. AI tells you which files to open, what the AC imply, and what patterns from similar resolved stories to mimic.
 - **Inline ticket creation** — highlight buggy code, hit `Cmd+Shift+J`, get a fully-formed BDD Story or Bug with acceptance criteria.
 - **Customer-facing release notes** — pick a version, AI groups and summarizes your tickets, publish to Confluence and the Jira version description with one click.
 - **Sprint + automation rules at a glance** — see your active sprint and all project automation rules in the sidebar without opening Jira.
@@ -95,6 +96,17 @@ SpecPilot uses a **three-provider fallback chain**: AWS Bedrock → Anthropic AP
 ---
 
 ## Features
+
+### Ticket Jumpstart
+
+Skip the "where do I even start?" ceremony. Hit `Cmd+Alt+J` (mac) / `Ctrl+Alt+J` (win/linux) and SpecPilot:
+
+1. Picks the ticket — next unassigned in your active sprint, one of your assigned tickets, or an issue key you type
+2. Pulls AC, description, parent epic, and resolved stories from the same epic as prior art
+3. Samples your workspace for grounding files, then asks AI for a concrete plan
+4. Opens a panel with: a one-line summary, 1–4 files to open (click to jump to the exact line), 2–4 starter steps, AC implications, and similar stories to mimic
+
+Configure default behavior with `specPilot.ticketJumpstart.source` (`ask` | `nextUnassigned` | `myAssigned` | `byKey`) and `specPilot.ticketJumpstart.maxSimilarStories`. The briefing uses the same Bedrock → Anthropic → VS Code Language Model fallback as the rest of the extension.
 
 ### Inline: Create Issue from Selection
 
@@ -187,6 +199,7 @@ Exposes Jira operations to Claude Code, Claude Desktop, or any MCP client. Tools
 | `SpecPilot: Set Credentials` | Configure Jira API credentials |
 | `SpecPilot: Set Anthropic API Key` | Configure Anthropic API key |
 | `SpecPilot: Create Issue from Selection` | Create Bug/Story from selected code |
+| `SpecPilot: Jumpstart Next Ticket` | AI briefing for your next ticket (`Cmd+Alt+J`) |
 | `SpecPilot: Check for Updates` | Check for new extension versions (self-hosted only) |
 | `SpecPilot: Start MCP Server` | Start the MCP server process |
 | `SpecPilot: Stop MCP Server` | Stop the MCP server process |

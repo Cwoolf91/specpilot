@@ -2,7 +2,7 @@
   "name": "specpilot",
   "displayName": "SpecPilot",
   "description": "Jira workflow tools — vibe code epics, AI-powered stories, release notes, automation rules, and more.",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "type": "module",
   "publisher": "woolfpakstudios",
   "repository": {
@@ -40,7 +40,8 @@
     "onView:specPilot.vibeEpics",
     "onView:specPilot.activeSprint",
     "onView:specPilot.automationRules",
-    "onView:specPilot.settings"
+    "onView:specPilot.settings",
+    "onCommand:specPilot.ticketJumpstart"
   ],
   "contributes": {
     "viewsContainers": {
@@ -78,6 +79,11 @@
         "key": "ctrl+shift+j",
         "mac": "cmd+shift+j",
         "when": "editorHasSelection"
+      },
+      {
+        "command": "specPilot.ticketJumpstart",
+        "key": "ctrl+alt+j",
+        "mac": "cmd+alt+j"
       }
     ],
     "commands": [
@@ -108,6 +114,10 @@
       {
         "command": "specPilot.setAnthropicApiKey",
         "title": "SpecPilot: Set Anthropic API Key"
+      },
+      {
+        "command": "specPilot.ticketJumpstart",
+        "title": "SpecPilot: Jumpstart Next Ticket"
       },
       {
         "command": "specPilot.refreshVibeEpics",
@@ -241,6 +251,29 @@
           "type": "string",
           "default": "",
           "description": "Path to a custom BDD Epic template file (.md). Leave empty to use the built-in template."
+        },
+        "specPilot.ticketJumpstart.source": {
+          "type": "string",
+          "enum": [
+            "ask",
+            "nextUnassigned",
+            "myAssigned",
+            "byKey"
+          ],
+          "default": "ask",
+          "description": "How Ticket Jumpstart picks the ticket: ask each time, next unassigned in active sprint, your assigned tickets, or prompt for an issue key."
+        },
+        "specPilot.ticketJumpstart.includePRs": {
+          "type": "boolean",
+          "default": false,
+          "description": "(Reserved for future use) Include related GitHub PRs in the Ticket Jumpstart briefing."
+        },
+        "specPilot.ticketJumpstart.maxSimilarStories": {
+          "type": "number",
+          "default": 3,
+          "minimum": 0,
+          "maximum": 10,
+          "description": "Maximum number of resolved stories in the same epic to include as context for the AI briefing."
         }
       }
     }
