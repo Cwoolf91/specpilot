@@ -62,11 +62,26 @@ jobs:
 
       - run: npm ci
 
-      - name: Bump patch version
+      - name: Determine release version
         id: version
         run: |
-          npm version patch --no-git-tag-version
-          VERSION=$(node -p "require('./package.json').version")
+          # If package.json is already ahead of the latest git tag (manual
+          # minor/major bump landed via PR), use it as-is. Otherwise bump patch.
+          git fetch --tags --quiet
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          LATEST_TAG=$(git tag --list 'v*' --sort=-v:refname | head -n1 | sed 's/^v//')
+          LATEST_TAG=${LATEST_TAG:-0.0.0}
+          HIGHER=$(node -e "const [a,b] = process.argv.slice(1).map(v => v.split('.').map(Number)); for (let i=0;i<3;i++){if(a[i]>b[i]){console.log('pkg');process.exit()} if(a[i]<b[i]){console.log('tag');process.exit()}} console.log('equal')" "$PKG_VERSION" "$LATEST_TAG")
+          if [ "$HIGHER" = "pkg" ]; then
+            echo "Using existing package.json version $PKG_VERSION (ahead of latest tag $LATEST_TAG)"
+            VERSION=$PKG_VERSION
+            echo "bumped=false" >> "$GITHUB_OUTPUT"
+          else
+            npm version patch --no-git-tag-version
+            VERSION=$(node -p "require('./package.json').version")
+            echo "Bumped patch: $LATEST_TAG -> $VERSION"
+            echo "bumped=true" >> "$GITHUB_OUTPUT"
+          fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Build
@@ -76,10 +91,16 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add package.json package-lock.json
-          git commit -m "v${{ steps.version.outputs.version }} [skip ci]"
+          if [ "${{ steps.version.outputs.bumped }}" = "true" ]; then
+            git add package.json package-lock.json
+            git commit -m "v${{ steps.version.outputs.version }} [skip ci]"
+          fi
           git tag "v${{ steps.version.outputs.version }}"
-          git push --atomic origin main "v${{ steps.version.outputs.version }}"
+          if [ "${{ steps.version.outputs.bumped }}" = "true" ]; then
+            git push --atomic origin main "v${{ steps.version.outputs.version }}"
+          else
+            git push origin "v${{ steps.version.outputs.version }}"
+          fi
 
       - name: Package extension
         run: npx @vscode/vsce package
