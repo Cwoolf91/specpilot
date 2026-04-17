@@ -120,9 +120,26 @@ export default function SettingsTab() {
           break;
         }
         case "error": {
-          if (saving) setSaving(false);
-          if (savingAnthropic) setSavingAnthropic(false);
-          if (savingEpicLabel) setSavingEpicLabel(false);
+          // Only surface errors tied to requests this tab originated,
+          // otherwise we'd show errors from Vibe Code / Release Notes tabs
+          // and reset our saving flags for unrelated failures.
+          const requestType = msg.requestType;
+          const SETTINGS_REQUESTS = new Set([
+            "getConnectionStatus",
+            "getAboutInfo",
+            "getCredentialsForm",
+            "saveCredentialsForm",
+            "saveAnthropicKeyForm",
+            "getEpicLabel",
+            "saveEpicLabel",
+            "openExternal",
+          ]);
+          if (typeof requestType === "string" && !SETTINGS_REQUESTS.has(requestType)) {
+            break;
+          }
+          if (requestType === "saveCredentialsForm") setSaving(false);
+          else if (requestType === "saveAnthropicKeyForm") setSavingAnthropic(false);
+          else if (requestType === "saveEpicLabel") setSavingEpicLabel(false);
           showToast({
             kind: "error",
             text: (msg.message as string) || "Something went wrong.",
@@ -131,7 +148,7 @@ export default function SettingsTab() {
         }
       }
     },
-    [saving, savingAnthropic, savingEpicLabel]
+    []
   );
 
   useVsCodeMessage(handleMessage);
