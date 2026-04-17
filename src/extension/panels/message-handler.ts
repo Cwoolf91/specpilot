@@ -117,6 +117,10 @@ export class MessageHandler {
           return await this.handleSaveSettings(msg);
         case "getSettings":
           return await this.handleGetSettings(msg);
+        case "getAboutInfo":
+          return this.handleGetAboutInfo();
+        case "openExternal":
+          return await this.handleOpenExternal(msg);
         default:
           this.postMessage({ type: "error", message: `Unknown message type: ${msg.type}` });
       }
@@ -688,6 +692,48 @@ export class MessageHandler {
       throw new Error(`Command not allowed: ${command}`);
     }
     await vscode.commands.executeCommand(command);
+  }
+
+  private handleGetAboutInfo() {
+    const ext = vscode.extensions.getExtension("woolfpakstudios.specpilot");
+    const pkg = (ext?.packageJSON ?? {}) as {
+      version?: string;
+      displayName?: string;
+      publisher?: string;
+      homepage?: string;
+      repository?: { url?: string };
+      bugs?: { url?: string };
+      license?: string;
+    };
+    const repoUrl = pkg.repository?.url?.replace(/\.git$/, "") ?? "https://github.com/Cwoolf91/specpilot";
+    this.postMessage({
+      type: "aboutInfo",
+      about: {
+        name: pkg.displayName ?? "SpecPilot",
+        version: pkg.version ?? "0.0.0",
+        publisher: "Woolf Pak Studios",
+        publisherId: pkg.publisher ?? "woolfpakstudios",
+        license: pkg.license ?? "MIT",
+        homepage: pkg.homepage ?? "https://woolfpakstudios.com",
+        repository: repoUrl,
+        bugs: pkg.bugs?.url ?? `${repoUrl}/issues`,
+        discord: "https://discord.gg/GTqFP4gDJr",
+        marketplace: `https://marketplace.visualstudio.com/items?itemName=${pkg.publisher ?? "woolfpakstudios"}.specpilot`,
+      },
+    });
+  }
+
+  private async handleOpenExternal(msg: Message) {
+    const url = requireString(msg, "url");
+    try {
+      const parsed = new URL(url);
+      if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+        throw new Error("Only http(s) URLs allowed");
+      }
+    } catch {
+      throw new Error(`Invalid URL: ${url}`);
+    }
+    await vscode.env.openExternal(vscode.Uri.parse(url));
   }
 
   private async handleSaveSettings(msg: Message) {

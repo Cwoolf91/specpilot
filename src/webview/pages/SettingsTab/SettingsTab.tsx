@@ -13,9 +13,23 @@ interface ConnectionStatus {
   error?: string;
 }
 
+interface AboutInfo {
+  name: string;
+  version: string;
+  publisher: string;
+  publisherId: string;
+  license: string;
+  homepage: string;
+  repository: string;
+  bugs: string;
+  discord: string;
+  marketplace: string;
+}
+
 export default function SettingsTab() {
   const [status, setStatus] = useState<ConnectionStatus | null>(null);
   const [loading, setLoading] = useState(true);
+  const [about, setAbout] = useState<AboutInfo | null>(null);
 
   const handleMessage = useCallback(
     (msg: { type: string; [key: string]: unknown }) => {
@@ -23,6 +37,9 @@ export default function SettingsTab() {
         case "connectionStatus":
           setStatus(msg.status as ConnectionStatus);
           setLoading(false);
+          break;
+        case "aboutInfo":
+          setAbout(msg.about as AboutInfo);
           break;
       }
     },
@@ -33,7 +50,10 @@ export default function SettingsTab() {
 
   useEffect(() => {
     sendMessage("getConnectionStatus");
+    sendMessage("getAboutInfo");
   }, []);
+
+  const openLink = (url: string) => sendMessage("openExternal", { url });
 
   const handleTestConnection = () => {
     setLoading(true);
@@ -133,16 +153,65 @@ export default function SettingsTab() {
 
       <div className="settings-section">
         <h3>About</h3>
-        <div className="about-info">
-          <div className="connection-row">
-            <span className="connection-label">Version</span>
-            <span>0.1.0</span>
+        {about ? (
+          <div className="about-info">
+            <div className="connection-row">
+              <span className="connection-label">Name</span>
+              <span>{about.name}</span>
+            </div>
+            <div className="connection-row">
+              <span className="connection-label">Version</span>
+              <span>{about.version}</span>
+            </div>
+            <div className="connection-row">
+              <span className="connection-label">Publisher</span>
+              <span>
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    openLink(about.homepage);
+                  }}
+                >
+                  {about.publisher}
+                </a>
+              </span>
+            </div>
+            <div className="connection-row">
+              <span className="connection-label">License</span>
+              <span>{about.license}</span>
+            </div>
+            <div className="about-links">
+              <Button variant="secondary" onClick={() => openLink(about.marketplace)}>
+                Marketplace
+              </Button>
+              <Button variant="secondary" onClick={() => openLink(about.repository)}>
+                GitHub
+              </Button>
+              <Button variant="secondary" onClick={() => openLink(about.bugs)}>
+                Report an Issue
+              </Button>
+              <Button variant="secondary" onClick={() => openLink(about.discord)}>
+                Discord
+              </Button>
+            </div>
+            <p className="about-tagline">
+              Built by{" "}
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  openLink(about.homepage);
+                }}
+              >
+                {about.publisher}
+              </a>
+              . AI-powered Jira workflow inside VS Code.
+            </p>
           </div>
-          <div className="connection-row">
-            <span className="connection-label">Publisher</span>
-            <span>SpecPilot</span>
-          </div>
-        </div>
+        ) : (
+          <Spinner text="Loading..." />
+        )}
       </div>
     </div>
   );

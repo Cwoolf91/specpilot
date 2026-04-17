@@ -661,6 +661,30 @@ h3 {
   margin-top: 8px;
 }
 
+.about-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.about-tagline {
+  margin-top: 16px;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.about-tagline a,
+.about-info a {
+  color: var(--vscode-textLink-foreground);
+  text-decoration: none;
+}
+
+.about-tagline a:hover,
+.about-info a:hover {
+  text-decoration: underline;
+}
+
 /* Release Notes — Filter Row */
 .filter-row {
   display: flex;
