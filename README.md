@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="resources/icon.png" alt="SpecPilot" width="128" height="128" />
+  <img src="https://raw.githubusercontent.com/Cwoolf91/specpilot/main/resources/icon.png" alt="SpecPilot" width="128" height="128" />
 </p>
 
 <h1 align="center">SpecPilot</h1>
@@ -41,13 +41,13 @@ Every engineering team loses hours every sprint to the friction between **"we bu
 
 ### Dashboard — four wizards in one panel
 
-![SpecPilot Dashboard](resources/screenshots/dashboard.png)
+![SpecPilot Dashboard](https://raw.githubusercontent.com/Cwoolf91/specpilot/main/resources/screenshots/dashboard.png)
 
 The dashboard opens beside your editor with the full sidebar visible. Five tabs: Vibe Code, Release Notes, Augment Epic, Epic Review, and Settings.
 
 ### Sidebar views
 
-<img src="resources/screenshots/sidebar.png" alt="Activity Bar Sidebar" width="280" />
+<img src="https://raw.githubusercontent.com/Cwoolf91/specpilot/main/resources/screenshots/sidebar.png" alt="Activity Bar Sidebar" width="280" />
 
 Four tree views under the SpecPilot icon:
 
@@ -60,7 +60,7 @@ Four tree views under the SpecPilot icon:
 
 ### Connection + MCP setup at a glance
 
-![Settings Tab](resources/screenshots/dashboard-settings.png)
+![Settings Tab](https://raw.githubusercontent.com/Cwoolf91/specpilot/main/resources/screenshots/dashboard-settings.png)
 
 The Settings tab shows live connection status, current user/instance/project, and a copy-pasteable MCP server config for Claude Code.
 
@@ -78,9 +78,9 @@ Install [SpecPilot from the VS Code Marketplace](https://marketplace.visualstudi
 2. Run **SpecPilot: Set Credentials**
 3. A four-step prompt walks you through the required values:
 
-<img src="resources/screenshots/setup-base-url.png" alt="Jira Base URL prompt" width="560" />
-<img src="resources/screenshots/setup-api-token.png" alt="Jira API Token prompt" width="560" />
-<img src="resources/screenshots/setup-project-key.png" alt="Default Project Key prompt" width="560" />
+<img src="https://raw.githubusercontent.com/Cwoolf91/specpilot/main/resources/screenshots/setup-base-url.png" alt="Jira Base URL prompt" width="560" />
+<img src="https://raw.githubusercontent.com/Cwoolf91/specpilot/main/resources/screenshots/setup-api-token.png" alt="Jira API Token prompt" width="560" />
+<img src="https://raw.githubusercontent.com/Cwoolf91/specpilot/main/resources/screenshots/setup-project-key.png" alt="Default Project Key prompt" width="560" />
 
 Use your Jira base URL, email, [API token](https://id.atlassian.com/manage-profile/security/api-tokens), and default project key. The status bar shows your connection state. Click it to open the dashboard. Issue types and projects are auto-discovered — no manual ID wiring.
 
@@ -105,21 +105,21 @@ Highlight code and create a Jira Bug or Story directly:
 - **Command Palette:** `SpecPilot: Create Issue from Selection`
 
 <p align="center">
-  <img src="resources/screenshots/create-issue-context-menu.png" alt="Right-click context menu showing Create Issue from Selection" width="420" />
+  <img src="https://raw.githubusercontent.com/Cwoolf91/specpilot/main/resources/screenshots/create-issue-context-menu.png" alt="Right-click context menu showing Create Issue from Selection" width="420" />
 </p>
 
 Pick the issue type, enter a short summary, and (optionally) add extra context:
 
 <p align="center">
-  <img src="resources/screenshots/create-issue-type.png" alt="Issue type picker: Bug or Story" width="560" /><br/>
-  <img src="resources/screenshots/create-issue-summary.png" alt="Summary input" width="560" /><br/>
-  <img src="resources/screenshots/create-issue-description.png" alt="Optional description input" width="560" />
+  <img src="https://raw.githubusercontent.com/Cwoolf91/specpilot/main/resources/screenshots/create-issue-type.png" alt="Issue type picker: Bug or Story" width="560" /><br/>
+  <img src="https://raw.githubusercontent.com/Cwoolf91/specpilot/main/resources/screenshots/create-issue-summary.png" alt="Summary input" width="560" /><br/>
+  <img src="https://raw.githubusercontent.com/Cwoolf91/specpilot/main/resources/screenshots/create-issue-description.png" alt="Optional description input" width="560" />
 </p>
 
 A review panel opens beside your editor. AI enhances the ticket in the background using BDD templates — you can edit every field before clicking **Create Issue**:
 
 <p align="center">
-  <img src="resources/screenshots/create-issue-review.png" alt="AI-enhanced Jira story review panel" width="620" />
+  <img src="https://raw.githubusercontent.com/Cwoolf91/specpilot/main/resources/screenshots/create-issue-review.png" alt="AI-enhanced Jira story review panel" width="620" />
 </p>
 
 - **Stories** — User Story, Why (business value), Acceptance Criteria (Given/When/Then), Release Instructions
