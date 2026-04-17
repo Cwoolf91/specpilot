@@ -239,3 +239,55 @@ export const SPRINT_CAPACITY_WARN = 30;
 // ---------------------------------------------------------------------------
 
 export type IssueTypeMap = Record<string, string>;
+
+// ---------------------------------------------------------------------------
+// Ticket Jumpstart
+// ---------------------------------------------------------------------------
+
+export interface JiraUser {
+  accountId: string;
+  displayName: string;
+  emailAddress?: string;
+}
+
+export interface SimilarStory {
+  key: string;
+  summary: string;
+  description: string;
+  resolvedAt?: string;
+}
+
+export interface BriefingFile {
+  path: string;
+  line?: number;
+  reason: string;
+}
+
+export interface BriefingLink {
+  title: string;
+  url: string;
+  why: string;
+}
+
+export type BriefingConfidence = "high" | "medium" | "low";
+
+export interface TicketBriefing {
+  issueKey: string;
+  summary: string; // engineer-voice one-liner
+  filesToOpen: BriefingFile[];
+  starters: string[];
+  similarStories: BriefingLink[];
+  implications: string[];
+  confidence: BriefingConfidence;
+}
+
+export interface BriefingContext {
+  issueKey: string;
+  issueSummary: string;
+  issueType: string;
+  acceptanceCriteria: string[];
+  description: string;
+  epicKey?: string;
+  epicSummary?: string;
+  similarStories: SimilarStory[];
+}

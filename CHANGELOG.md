@@ -2,6 +2,14 @@
 
 All notable changes to SpecPilot will be documented in this file.
 
+## [1.1.0] - 2026-04-17
+
+### Added
+- **Ticket Jumpstart** (`Cmd+Alt+J` / `Ctrl+Alt+J`): jump into your next ticket with an AI-generated briefing — which files to open, what the acceptance criteria imply, and what patterns from similar resolved stories to mimic. Three sources: next unassigned in active sprint, your assigned tickets, or enter an issue key.
+  - New settings: `specPilot.ticketJumpstart.source` (default `ask`), `specPilot.ticketJumpstart.maxSimilarStories` (default 3)
+  - Uses the same three-provider AI chain as other features (Bedrock → Anthropic → VS Code LM)
+  - Status bar indicator shows the active briefing; click files in the panel to open at the relevant line
+
 ## [1.0.0] - 2026-04-15
 
 ### Added
